@@ -7,6 +7,15 @@ const SEGMENTS = 500;
 const scene = new THREE.Scene(); //create a scene
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000); //create a camera
 
+scene.background = new THREE.CubeTextureLoader().setPath("/textures/").load([
+    '8k_stars_cube.jpg',
+    '8k_stars_milky_way_cube.jpg',
+    '8k_stars_cube.jpg',
+    '8k_stars_cube.jpg',
+    '8k_stars_milky_way_cube.jpg',
+    '8k_stars_milky_way_cube.jpg',
+]);
+
 const renderer = new THREE.WebGLRenderer(); //create a renderer
 
 const controls = new OrbitControls(camera, renderer.domElement); //create controls for the camera
@@ -14,19 +23,17 @@ const controls = new OrbitControls(camera, renderer.domElement); //create contro
 //texture loader
 const textureLoader = new THREE.TextureLoader();
 
-scene.background = textureLoader.load('./textures/8k_stars.jpg');
-
 renderer.setSize(window.innerWidth, window.innerHeight); //set the size of the renderer
 document.body.appendChild(renderer.domElement);
 
 const sunGeometry = new THREE.SphereGeometry(30, SEGMENTS, SEGMENTS); //create a sphere
 const sunTexture = textureLoader.load('./textures/2k_sun.jpg');
-const SunMaterial = new THREE.MeshToonMaterial({ map: sunTexture }); //create a material
+const SunMaterial = new THREE.MeshBasicMaterial({ map: sunTexture }); //create a material
 SunMaterial.map = sunTexture;
 const SunMesh = new THREE.Mesh(sunGeometry, SunMaterial); //create a mesh
 scene.add(SunMesh); //add the mesh to the scene
 
-const sunLight = new THREE.PointLight(0xFFFFFF, 1.2, 0); //create a light
+const sunLight = new THREE.PointLight(0xFFFFFF, 2, 500); //create a light
 sunLight.position.set(0, 0, 0); //set the light's position
 sunLight.castShadow = true;
 scene.add(sunLight); //add the light to the scene
@@ -44,7 +51,7 @@ for(let i = 0; i < planets.length; i++){
     const planet = planets[i];
     const planetGeometry = new THREE.SphereGeometry(planet.radius, SEGMENTS, SEGMENTS); //create a sphere
     const planetTexture = textureLoader.load(planet.texture);
-    const planetMaterial = new THREE.MeshPhysicalMaterial({ map: planetTexture }); //create a material
+    const planetMaterial = new THREE.MeshStandardMaterial({ map: planetTexture }); //create a material
     planetMaterial.castShadow = true;
     const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial); //create a mesh
 
@@ -59,15 +66,6 @@ for(let i = 0; i < planets.length; i++){
     }
     planetMesh.position.x = position;
 
-    //create orbit
-    const orbitGeometry = new THREE.RingGeometry(position, position + 0.1, SEGMENTS);
-    const orbitMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-    orbitMaterial.transparent = true;
-    orbitMaterial.opacity = 0.5;
-    const orbitMesh = new THREE.Mesh(orbitGeometry, orbitMaterial); //create a mesh
-    orbitMesh.rotation.x = Math.PI / 2;
-    scene.add(orbitMesh); //add the mesh to the scene
-
     sunRotationPoints[i].add(planetMesh); //add the mesh to the scene
 
     if(planet.name === "Earth"){
@@ -77,17 +75,7 @@ for(let i = 0; i < planets.length; i++){
         const moonMaterial = new THREE.MeshPhysicalMaterial({ map: moonTexture }); //create a material
         const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial); //create a mesh
         moonMesh.position.x = 10;
-        planetMesh.add(moonMesh); //add the mesh to the scene
-
-        //create the moon's orbit
-        const moonOrbitGeometry = new THREE.RingGeometry(10, 10.1, SEGMENTS);
-        const moonOrbitMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-        moonOrbitMaterial.transparent = true;
-        moonOrbitMaterial.opacity = 0.5;
-        const moonOrbitMesh = new THREE.Mesh(moonOrbitGeometry, moonOrbitMaterial); //create a mesh
-        moonOrbitMesh.rotation.x = Math.PI / 2;
-        planetMesh.add(moonOrbitMesh); //add the mesh to the scene
-
+        planetMesh.add(moonMesh); //add the mesh to the scene   
     }
 
     if(planet.name === "Saturn"){
@@ -114,6 +102,7 @@ camera.position.z = 100;
 camera.position.y = 30; 
 camera.rotation.x = -0.1;
 
+controls.update();
 
 const rotateSun = () => {
     requestAnimationFrame(rotateSun);
