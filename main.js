@@ -4,108 +4,136 @@ import planets from './planets.js';
 
 const SEGMENTS = 500;
 
-const scene = new THREE.Scene(); //create a scene
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000); //create a camera
+const CAMERA_START_X = -0.1;
+const CAMERA_START_Y = 30;
+const CAMERA_START_Z = 100;
 
-scene.background = new THREE.CubeTextureLoader().setPath("/textures/").load([
-    '8k_stars_cube.jpg',
-    '8k_stars_milky_way_cube.jpg',
-    '8k_stars_cube.jpg',
-    '8k_stars_cube.jpg',
-    '8k_stars_milky_way_cube.jpg',
-    '8k_stars_milky_way_cube.jpg',
-]);
+let scene = null;
+let camera = null;
+let controls = null;
 
-const renderer = new THREE.WebGLRenderer(); //create a renderer
-
-const controls = new OrbitControls(camera, renderer.domElement); //create controls for the camera
-
-//texture loader
-const textureLoader = new THREE.TextureLoader();
-
-renderer.setSize(window.innerWidth, window.innerHeight); //set the size of the renderer
-document.body.appendChild(renderer.domElement);
-
-const sunGeometry = new THREE.SphereGeometry(30, SEGMENTS, SEGMENTS); //create a sphere
-const sunTexture = textureLoader.load('./textures/2k_sun.jpg');
-const SunMaterial = new THREE.MeshBasicMaterial({ map: sunTexture }); //create a material
-SunMaterial.map = sunTexture;
-const SunMesh = new THREE.Mesh(sunGeometry, SunMaterial); //create a mesh
-scene.add(SunMesh); //add the mesh to the scene
-
-const sunLight = new THREE.PointLight(0xFFFFFF, 2, 500); //create a light
-sunLight.position.set(0, 0, 0); //set the light's position
-sunLight.castShadow = true;
-scene.add(sunLight); //add the light to the scene
-
-//create 9 empty objects to act as sun rotation points
+//global variables
+let SunMesh = null;
 const sunRotationPoints = [];
+let renderer = null; //renderer
 
-for (let i = 0; i < planets.length; i++) {
-    const sunRotationPoint = new THREE.Object3D();
-    scene.add(sunRotationPoint);
-    sunRotationPoints.push(sunRotationPoint);
-}
+const init = () => {
+    scene = new THREE.Scene(); //create a scene
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000); //create a camera
 
-for(let i = 0; i < planets.length; i++){
-    const planet = planets[i];
-    const planetGeometry = new THREE.SphereGeometry(planet.radius, SEGMENTS, SEGMENTS); //create a sphere
-    const planetTexture = textureLoader.load(planet.texture);
-    const planetMaterial = new THREE.MeshStandardMaterial({ map: planetTexture }); //create a material
-    planetMaterial.castShadow = true;
-    const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial); //create a mesh
+    scene.background = new THREE.CubeTextureLoader().setPath("/textures/").load([
+        '8k_stars_cube.jpg',
+        '8k_stars_milky_way_cube.jpg',
+        '8k_stars_cube.jpg',
+        '8k_stars_cube.jpg',
+        '8k_stars_milky_way_cube.jpg',
+        '8k_stars_milky_way_cube.jpg',
+    ]);
 
-    //add planet relative to the sun's coordinate system
-    let position = null;
-
-    if(i < 4){
-        position = 40 * (i + 1);
+    renderer = new THREE.WebGLRenderer(); //create a renderer
+    renderer.setSize(window.innerWidth, window.innerHeight); //set the size of the renderer
+    document.body.appendChild(renderer.domElement);
+     
+    controls = new OrbitControls(camera, renderer.domElement); //create controls for the camera
+    controls.listenToKeyEvents(window); //listen to key events
+    
+    //controls keys
+    controls.keys = {
+        LEFT: 'KeyA',
+        UP: 'KeyW',
+        RIGHT: 'KeyD',
+        BOTTOM: 'KeyS'
     }
-    else{
-        position = 40 * (i + 2);
+    
+    //texture loader
+    const textureLoader = new THREE.TextureLoader();
+        
+    const sunGeometry = new THREE.SphereGeometry(30, SEGMENTS, SEGMENTS); //create a sphere
+    const sunTexture = textureLoader.load('./textures/2k_sun.jpg');
+    const SunMaterial = new THREE.MeshBasicMaterial({ map: sunTexture }); //create a material
+    SunMaterial.map = sunTexture;
+    SunMesh = new THREE.Mesh(sunGeometry, SunMaterial); //create a mesh
+    scene.add(SunMesh); //add the mesh to the scene
+    
+    const sunLight = new THREE.PointLight(0xFFFFFF, 2, 500); //create a light
+    sunLight.position.set(0, 0, 0); //set the light's position
+    sunLight.castShadow = true;
+    scene.add(sunLight); //add the light to the scene
+        
+    //create 9 empty objects to act as sun rotation points
+    for (let i = 0; i < planets.length; i++) {
+        const sunRotationPoint = new THREE.Object3D();
+        scene.add(sunRotationPoint);
+        sunRotationPoints.push(sunRotationPoint);
     }
-    planetMesh.position.x = position;
-
-    sunRotationPoints[i].add(planetMesh); //add the mesh to the scene
-
-    if(planet.name === "Earth"){
-        //create the moon
-        const moonGeometry = new THREE.SphereGeometry(1, SEGMENTS, SEGMENTS); //create a sphere
-        const moonTexture = textureLoader.load('./textures/2k_moon.jpg');
-        const moonMaterial = new THREE.MeshPhysicalMaterial({ map: moonTexture }); //create a material
-        const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial); //create a mesh
-        moonMesh.position.x = 10;
-        planetMesh.add(moonMesh); //add the mesh to the scene   
-    }
-
-    if(planet.name === "Saturn"){
-        //create the ring
-        for(let j = 0; j < 7; j++){
-            const ringGeometry = new THREE.RingGeometry((planets[i].radius + 0.1) + j * 0.5, (planets[i].radius + 0.5) + j * 0.5, 32);
-            const ringMaterial = new THREE.MeshToonMaterial({ side: THREE.DoubleSide });
-            const ringTexture = textureLoader.load('./textures/2k_saturn_ring_alpha.png');
-            ringMaterial.transparent = true;
-            ringMaterial.castShadow = true;
-            ringMaterial.map = ringTexture;
-            const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial); //create a mesh
-            ringMesh.rotation.x = Math.PI / 2;
-            planetMesh.add(ringMesh); //add the mesh to the scene
+    
+    for(let i = 0; i < planets.length; i++){
+        const planet = planets[i];
+        const planetGeometry = new THREE.SphereGeometry(planet.radius, SEGMENTS, SEGMENTS); //create a sphere
+        const planetTexture = textureLoader.load(planet.texture);
+        const planetMaterial = new THREE.MeshStandardMaterial({ map: planetTexture }); //create a material
+        planetMaterial.castShadow = true;
+        const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial); //create a mesh
+    
+        //add planet relative to the sun's coordinate system
+        let position = null;
+    
+        if(i < 4){
+            position = 40 * (i + 1);
         }
-
+        else{
+            position = 40 * (i + 2);
+        }
+        planetMesh.position.x = position;
+    
+        sunRotationPoints[i].add(planetMesh); //add the mesh to the scene
+    
+        if(planet.name === "Earth"){
+            //create the moon
+            const moonGeometry = new THREE.SphereGeometry(1, SEGMENTS, SEGMENTS); //create a sphere
+            const moonTexture = textureLoader.load('./textures/2k_moon.jpg');
+            const moonMaterial = new THREE.MeshPhysicalMaterial({ map: moonTexture }); //create a material
+            const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial); //create a mesh
+            moonMesh.position.x = 10;
+            planetMesh.add(moonMesh); //add the mesh to the scene   
+        }
+    
+        if(planet.name === "Saturn"){
+            //create the ring
+            for(let j = 0; j < 7; j++){
+                const ringGeometry = new THREE.RingGeometry((planets[i].radius + 0.1) + j * 0.5, (planets[i].radius + 0.5) + j * 0.5, 32);
+                const ringMaterial = new THREE.MeshToonMaterial({ side: THREE.DoubleSide });
+                const ringTexture = textureLoader.load('./textures/2k_saturn_ring_alpha.png');
+                ringMaterial.transparent = true;
+                ringMaterial.castShadow = true;
+                ringMaterial.map = ringTexture;
+                const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial); //create a mesh
+                ringMesh.rotation.x = Math.PI / 2;
+                planetMesh.add(ringMesh); //add the mesh to the scene
+            }
+    
+        }
+    
+        planet.setMesh(planetMesh);
     }
-
-    planet.setMesh(planetMesh);
+    
+    //set the camera position
+    camera.position.z = CAMERA_START_Z;
+    camera.position.y = CAMERA_START_Y; 
+    camera.rotation.x = CAMERA_START_X;
+    scene.add(camera);
+    
+    controls.update(); //update the controls to match the camera position
 }
 
-//set the camera position
-camera.position.z = 100;
-camera.position.y = 30; 
-camera.rotation.x = -0.1;
 
-controls.update();
+const raycaster = new THREE.Raycaster(); //create a raycaster
+const mouse = new THREE.Vector2(); //create a vector2 to store the mouse position
+
+let isFollowingObj = false;
+let followingObj = null;
 
 const rotateSun = () => {
-    requestAnimationFrame(rotateSun);
     let rotationValue = 0.01;
     SunMesh.rotation.y += 0.01;
 
@@ -113,17 +141,80 @@ const rotateSun = () => {
         sunRotationPoints[i].rotation.y += rotationValue;
         rotationValue = rotationValue / 1.3;
     }
+}
+
+const rotatePlanets = () => {
+    for(let i = 0; i < 9; i++){
+        planets[i].mesh.rotation.y += 0.01;
+    }
+}
+
+//object focus
+
+const followObject = () => {
+    if(isFollowingObj){
+        //focus the camera on the object
+        const objectPosition = new THREE.Vector3();
+        followingObj.getWorldPosition(objectPosition);
+        const cameraOffset = new THREE.Vector3(0, 5, followingObj.geometry.boundingSphere.radius + 10);
+        camera.position.copy(objectPosition).add(cameraOffset);
+        controls.enabled = false;
+    }
+}
+
+const animate = () => {
+    requestAnimationFrame(animate);
+    rotateSun();
+    rotatePlanets();
+    followObject();
 
     renderer.render(scene, camera); //render the scene
 }
 
 
-const rotatePlanets = () => {
-    requestAnimationFrame(rotatePlanets);
+const resetCamera = () => {
+    //return back to original position
+    camera.position.x = CAMERA_START_X;
+    camera.position.y = CAMERA_START_Y;
+    camera.position.z = CAMERA_START_Z;
 
-    for(let i = 0; i < 9; i++){
-        planets[i].mesh.rotation.y += 0.01;
+    controls.update();
+    controls.enabled = true;
+}
+
+const stopFollowingObject = (event) => {
+    if(event.keyCode === 27){ //Esc pressed
+        isFollowingObj = false;
+        resetCamera();
+        followingObj = null;
     }
 }
-rotateSun(); //start the animation
-rotatePlanets(); //start the animation
+
+
+//mouse event listeners for raycasting
+
+const mouseMove = (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1; //calculate the mouse position
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
+
+const focusObject = (event) => {
+    raycaster.setFromCamera(mouse, camera); //set the raycaster position
+    const intersects = raycaster.intersectObjects(scene.children, true); //get the objects that intersect with the raycaster
+
+    //if there are any intersections
+    if(intersects.length > 0){
+        followingObj = intersects[0].object; //get the first intersected object
+        isFollowingObj = true;
+        console.log(followingObj);
+    }
+}
+
+//add the event listeners
+document.addEventListener('mousemove', mouseMove);
+document.addEventListener('click', focusObject);
+document.addEventListener("keydown", stopFollowingObject);
+
+//rendering
+init();
+animate();
