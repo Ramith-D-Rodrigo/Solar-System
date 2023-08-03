@@ -51,8 +51,8 @@ const init = () => {
     SunMesh = new THREE.Mesh(sunGeometry, SunMaterial); //create a mesh
     scene.add(SunMesh); //add the mesh to the scene
     
-    const sunLight = new THREE.PointLight(0xFFFFFF, 1.5, 700); //create a light
-    sunLight.position.set(0, 30, 0); //set the light's position
+    const sunLight = new THREE.PointLight(0xFFFFFF, 1, 2000); //create a light
+    sunLight.position.set(0, 20, 0); //set the light's position
     sunLight.castShadow = true;
     scene.add(sunLight); //add the light to the scene
         
@@ -104,19 +104,20 @@ const init = () => {
     
         if(planet.name === "Saturn"){
             //create the ring
+            const ringGeometry = new THREE.RingGeometry((planets[i].radius + 0.5), (planets[i].radius + 0.8) * 1.35, SEGMENTS, SEGMENTS);
+            const ringTex = textureLoader.load('./textures/2k_saturn_ring_alpha.png');
+            const ringMaterial = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, 
+                //map the texture to the ring but flip it so it's not upside down
+                map: ringTex,
+                transparent: true,
+            });          
 
-            const ringColors = ['#655f45', '#d8ae6d', '#ffe1ab', '#dbb57c', '#b89c72', '#a98b6e', '#8a7a6a'];
-            for(let j = 0; j < 7; j++){
-                const ringGeometry = new THREE.RingGeometry((planets[i].radius + 0.5) + j * 0.3, (planets[i].radius + 0.8) + j * 0.3, SEGMENTS, SEGMENTS);
-                const ringMaterial = new THREE.MeshStandardMaterial({ color: ringColors[j], side: THREE.DoubleSide });
+            const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial); //create a mesh
+            ringMesh.rotation.x = Math.PI / 2;
+            planetMesh.add(ringMesh); //add the mesh to the scene
 
-                const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial); //create a mesh
-                ringMesh.rotation.x = Math.PI / 2;
-                planetMesh.add(ringMesh); //add the mesh to the scene
-
-                ringMesh.castShadow = false;
-                ringMesh.receiveShadow = true;
-            } 
+            ringMesh.castShadow = true;
+            ringMesh.receiveShadow = false;
             
             //create the moons of saturn (create 10 moons)
             for(let j = 0; j < 10; j++){
