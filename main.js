@@ -1,6 +1,10 @@
 import * as THREE from './node_modules/three/src/Three.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import planets from './planets.js';
+import { FBXLoader } from './node_modules/three/examples/jsm/loaders/FBXLoader.js';
+//"Saiyan Space Pod (DBOR)" (https://skfb.ly/6XPyA) by LogNworld is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+const fbxLoader = new FBXLoader();
 
 const SEGMENTS = 100;
 
@@ -19,6 +23,7 @@ let renderer = null; //renderer
 let saturnMoonRotationPoints = [];
 let moons = [];
 let textureLoader = null;
+let spaceshipMesh = null;
 
 const init = () => {
     scene = new THREE.Scene(); //create a scene
@@ -116,7 +121,7 @@ const init = () => {
             ringMesh.rotation.x = Math.PI / 2;
             planetMesh.add(ringMesh); //add the mesh to the scene
 
-            ringMesh.castShadow = true;
+            //ringMesh.castShadow = true;
             ringMesh.receiveShadow = false;
             
             //create the moons of saturn (create 10 moons)
@@ -150,8 +155,7 @@ const init = () => {
     
         planet.setMesh(planetMesh);
     }
-
-    //set the camera position
+    //set the camera position to point at the saturn
     camera.position.z = CAMERA_START_Z;
     camera.position.y = CAMERA_START_Y; 
     camera.rotation.x = CAMERA_START_X;
@@ -166,6 +170,7 @@ const mouse = new THREE.Vector2(); //create a vector2 to store the mouse positio
 
 let isFollowingObj = false;
 let followingObj = null;
+let cameraOffset = null;
 
 const rotateSun = () => {
     let rotationValue = 0.01;
@@ -197,17 +202,127 @@ const rotateMoons = () => {
 
 //object focus
 
+const StartfollowingObject = () => {
+    //focus the camera on the object
+    const objectPosition = new THREE.Vector3();
+    followingObj.getWorldPosition(objectPosition);
+    //find the camera offset for the object
+    cameraOffset = new THREE.Vector3(0, 3, followingObj.geometry.boundingSphere.radius + 10);
+
+    //add the camera to the object so it follows it
+    followingObj.add(camera);
+
+    //set the camera position to the offset
+    camera.position.copy(cameraOffset);
+
+    followObject();
+}
+
 const followObject = () => {
     if(isFollowingObj){
-        //focus the camera on the object
         const objectPosition = new THREE.Vector3();
         followingObj.getWorldPosition(objectPosition);
-        const cameraOffset = new THREE.Vector3(0, 5, followingObj.geometry.boundingSphere.radius + 10);
-        camera.position.copy(objectPosition).add(cameraOffset);
-        camera.lookAt(objectPosition);
-        controls.enabled = false;
+        //set the controls target to the object position
+        controls.target.copy(objectPosition);
+        controls.update();
     }
 }
+
+const asteroids = [];
+
+const spawnAsteroid = () => {
+    const asteroidSize = Math.random() * 0.5 + 0.1; //random size for the asteroid
+
+    const asteroidGeometry = new THREE.SphereGeometry(asteroidSize, SEGMENTS, SEGMENTS); //create a sphere
+    const asteroidTexture = textureLoader.load('./textures/asteroid.jpg');
+    const asteroidMaterial = new THREE.MeshStandardMaterial({ map: asteroidTexture }); //create a material
+    const asteroidMesh = new THREE.Mesh(asteroidGeometry, asteroidMaterial); //create a mesh
+    const maxDistance = Math.random() * 1000 + 500; //max distance it travels ()
+    const currDistance = 0; //current distance it has travelled
+    const randomAngle = Math.random() * 2 * Math.PI; //random angle for the asteroid to spawn at
+    let randomSpeed = Math.random() * 5; //random speed for the asteroid to travel at (0 - 5)
+
+    //make the speed negative 50% of the time
+    if(Math.random() < 0.5){
+        randomSpeed = -randomSpeed;
+    }
+
+    const movingAxis = Math.floor(Math.random() * 3); //random axis for the asteroid to travel on (x, y, z) x = 0, y = 1, z = 2
+
+    //set the asteroid position randomly
+    asteroidMesh.position.x = Math.random() * 1000 - 500;
+    asteroidMesh.position.y = Math.random() * 1000 - 500;
+    asteroidMesh.position.z = Math.random() * 1000 - 500;
+
+    //add the asteroid to the scene
+    scene.add(asteroidMesh);
+
+    //create a particle system for the asteroid that acts as a trail
+    const particleGeometry = new THREE.CylinderGeometry(asteroidSize, asteroidSize * 2, 20, 10, 10);  //box trail should be long in the x direction
+    const particleMaterial = new THREE.PointsMaterial({ map: asteroidTexture, size: 0.01, sizeAttenuation: true });
+
+    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+    //add the particle system to the asteroid so it moves with it
+    asteroidMesh.add(particleSystem);
+   
+    //rotate the particle system so it is facing the asteroid moving direction
+    if(movingAxis === 0){ //if the asteroid is moving on the x axis
+        particleSystem.rotation.z = -Math.PI / 2;
+        //reverse the rotation if the asteroid is moving backwards
+        if(randomSpeed < 0){
+            particleSystem.rotation.z = Math.PI / 2;
+        }
+    }
+    else if(movingAxis === 1){  //if the asteroid is moving on the y axis
+        if(randomSpeed < 0){
+            particleSystem.rotation.x = Math.PI;
+        }
+    }
+    else{
+        particleSystem.rotation.x = Math.PI / 2;
+        //reverse the rotation if the asteroid is moving backwards
+        if(randomSpeed < 0){
+            particleSystem.rotation.x = -Math.PI / 2;
+        }
+    }
+
+
+    asteroids.push({
+        mesh: asteroidMesh,
+        maxDistance: maxDistance,
+        currDistance: currDistance,
+        randomAngle: randomAngle,
+        randomSpeed: randomSpeed,
+        movingAxis: movingAxis,
+        particleSystem: particleSystem
+    }); //add the asteroid to the array
+}
+
+const moveAsteroids = () => {
+    for(let i = 0; i < asteroids.length; i++){
+        if(asteroids[i].currDistance < asteroids[i].maxDistance){
+            if(asteroids[i].movingAxis === 0){  //check the axis it is moving on
+                asteroids[i].mesh.position.x += asteroids[i].randomSpeed;
+
+            }else if(asteroids[i].movingAxis === 1){
+                asteroids[i].mesh.position.y += asteroids[i].randomSpeed;
+
+            }else{
+                asteroids[i].mesh.position.z += asteroids[i].randomSpeed;
+            }
+            asteroids[i].currDistance += asteroids[i].randomSpeed;
+
+        }else{
+            //remove the asteroid from the scene
+            scene.remove(asteroids[i].mesh);
+            console.log("removed");
+            //remove the asteroid from the array
+            asteroids.splice(i, 1);
+        }
+    }
+}
+
+
 const animate = () => {
     requestAnimationFrame(animate);
     rotateSun();
@@ -216,18 +331,32 @@ const animate = () => {
     saturnMoonRotaion();
     followObject();
 
+    //for random asteroid spawning
+    //first get a random number between 0 and 1000
+    const randomNum = Math.floor(Math.random() * 1000);
+    if(randomNum % 75 === 0){ //if the number is divisible by 234
+        spawnAsteroid(); //spawn an asteroid
+    }
+    moveAsteroids();
+
+
     renderer.render(scene, camera); //render the scene
 }
 
 
 const resetCamera = () => {
+    scene.add(camera);
     //return back to original position
     camera.position.x = CAMERA_START_X;
     camera.position.y = CAMERA_START_Y;
     camera.position.z = CAMERA_START_Z;
 
+    //reset the controls to the original position
+    controls.target.set(0, 0, 0);
+
     controls.update();
     controls.enabled = true;
+
 }
 
 const stopFollowingObject = (event) => {
@@ -254,6 +383,7 @@ const focusObject = (event) => {
     if(intersects.length > 0){
         followingObj = intersects[0].object; //get the first intersected object
         isFollowingObj = true;
+        StartfollowingObject();
     }
 }
 
