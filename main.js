@@ -52,7 +52,6 @@ const init = () => {
     const sunGeometry = new THREE.SphereGeometry(30, SEGMENTS, SEGMENTS); //create a sphere
     const sunTexture = textureLoader.load('./textures/2k_sun.jpg');
     const SunMaterial = new THREE.MeshBasicMaterial({ map: sunTexture }); //create a material
-    SunMaterial.map = sunTexture;
     SunMesh = new THREE.Mesh(sunGeometry, SunMaterial); //create a mesh
     scene.add(SunMesh); //add the mesh to the scene
     
@@ -112,7 +111,6 @@ const init = () => {
             const ringGeometry = new THREE.RingGeometry((planets[i].radius + 0.5), (planets[i].radius + 0.8) * 1.35, SEGMENTS, SEGMENTS);
             const ringTex = textureLoader.load('./textures/2k_saturn_ring_alpha.png');
             const ringMaterial = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, 
-                //map the texture to the ring but flip it so it's not upside down
                 map: ringTex,
                 transparent: true,
             });          
@@ -122,7 +120,7 @@ const init = () => {
             planetMesh.add(ringMesh); //add the mesh to the scene
 
             //ringMesh.castShadow = true;
-            ringMesh.receiveShadow = false;
+            ringMesh.receiveShadow = true;
             
             //create the moons of saturn (create 10 moons)
             for(let j = 0; j < 10; j++){
@@ -135,7 +133,7 @@ const init = () => {
                 planetMesh.add(moonRotationPoint);
 
 
-                const moonGeometry = new THREE.SphereGeometry(Math.random() * 0.45, SEGMENTS, SEGMENTS); //create a sphere
+                const moonGeometry = new THREE.SphereGeometry(Math.random() * 0.45 + 0.1, SEGMENTS, SEGMENTS); //create a sphere
                 const moonTexture = textureLoader.load('./textures/2k_moon.jpg');
                 const moonMaterial = new THREE.MeshStandardMaterial({ map: moonTexture }); //create a material
                 const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial); //create a mesh
@@ -147,7 +145,7 @@ const init = () => {
                 //add the moon to the moon rotation point
                 moonRotationPoint.add(moonMesh); //add the mesh to the scene   
 
-                saturnMoonRotationPoints.push([moonRotationPoint, Math.random() * 0.007]); //add the moon rotation point to the array and give it a random rotation speed
+                saturnMoonRotationPoints.push([moonRotationPoint, Math.random() * 0.007 + 0.001]); //add the moon rotation point to the array and give it a random rotation speed
 
                 moons.push(moonMesh);
             }
