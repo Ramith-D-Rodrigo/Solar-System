@@ -256,8 +256,20 @@ const spawnAsteroid = () => {
     scene.add(asteroidMesh);
 
     //create a particle system for the asteroid that acts as a trail
-    const particleGeometry = new THREE.CylinderGeometry(asteroidSize, asteroidSize * 2, 20, 10, 10);  //box trail should be long in the x direction
+    const particleGeometry = new THREE.CylinderGeometry(0, asteroidSize * 2, 10, 5, 5);
     const particleMaterial = new THREE.PointsMaterial({ map: asteroidTexture, size: 0.01, sizeAttenuation: true });
+
+    //add some ring particles to the asteroid
+    const ringCount = Math.random() * 10 + 1;
+    for(let i = 0; i < ringCount; i++){
+        const ringGeometry = new THREE.RingGeometry(asteroidSize + Math.random(), asteroidSize * (Math.random() + 6), 20, 2, 2);
+        const ringMaterial = new THREE.PointsMaterial({ map: asteroidTexture, size: 0.01, sizeAttenuation: true });
+        const ringMesh = new THREE.Points(ringGeometry, ringMaterial);
+        //random rotation for the ring
+        ringMesh.rotation.x = Math.random() * 2 * Math.PI;
+        asteroidMesh.add(ringMesh);
+    }
+
 
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     //add the particle system to the asteroid so it moves with it
@@ -292,7 +304,6 @@ const spawnAsteroid = () => {
         randomAngle: randomAngle,
         randomSpeed: randomSpeed,
         movingAxis: movingAxis,
-        particleSystem: particleSystem
     }); //add the asteroid to the array
 }
 
