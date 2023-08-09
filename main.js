@@ -238,7 +238,7 @@ const spawnAsteroid = () => {
     const maxDistance = Math.random() * 1000 + 500; //max distance it travels ()
     const currDistance = 0; //current distance it has travelled
     const randomAngle = Math.random() * 2 * Math.PI; //random angle for the asteroid to spawn at
-    let randomSpeed = Math.random() * 5; //random speed for the asteroid to travel at (0 - 5)
+    let randomSpeed = Math.random() * 5 + 1; //random speed for the asteroid to travel at (1 - 6)
 
     //make the speed negative 50% of the time
     if(Math.random() < 0.5){
